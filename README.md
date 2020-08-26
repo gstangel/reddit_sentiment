@@ -1,10 +1,14 @@
-# reddit_sentiment
-Reddit_Sentiment is a python based application that enables a user to calculate the sentiment of a subreddit seamlessly
+**Reddit_sentiment**
+
+Reddit_Sentiment is a python based application that enables a user to calculate the emotional sentiment of a subreddit 
 
 Prerequisites:
     Python 3 installed locally
+    
     TextBlob module- docs and install procedure can be found here https://textblob.readthedocs.io/en/dev/
+    
     A reddit account
+    
     A bot registered with reddit. Once logged in, you can sign up for a developer app at this link https://www.reddit.com/prefs/apps
     
 Once registered with reddit for a bot, insert your credentials into the credentials.py file in their respective places.
