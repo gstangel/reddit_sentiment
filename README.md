@@ -1,4 +1,4 @@
-#**Reddit_sentiment**
+#Reddit_sentiment
 
 Reddit_Sentiment is a python based application that enables a user to calculate the emotional sentiment of a subreddit 
 
