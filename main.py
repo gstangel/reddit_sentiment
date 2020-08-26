@@ -6,121 +6,112 @@ from textblob import TextBlob
 from statistics import mean
 import credentials
 
-#insert your client id, secret key, bot name, and username 
-reddit = praw.Reddit(client_id = credentials.clientID, client_secret = credentials.clientSecret, user_agent = credentials.userAgent, username = credentials.userName)
-
-#Change what data you want appended to the JSON file using these variables
-#Change what data you want appended to the JSON file using these variables
-appendComments = True
-appendAuthor = True
-appendPostBody = True
-appendTitle = True
-appendDateTime = True
-appendPostID = True
-appendNumComments = True
-appendNumUpvotes = True
-appendFlair = True
-appendUpvoteRatio = True
-appendURL = True
-
-targetSubreddit = "programming"
-postLimit = 5
+#client id, secret key, bot name, and username read from credentials.py
+reddit = praw.Reddit(client_id = credentials.clientID,
+                    client_secret = credentials.clientSecret,
+                    user_agent = credentials.userAgent, 
+                    username = credentials.userName)
 
 
-def post_to_json():
-    #get current working directory
-    cwd = os.getcwd()
-    #make new folder from targetSubreddit variable
-    targetFolder = os.path.join(cwd, targetSubreddit)
-    #check if the folder was already created
-    if os.path.isdir(targetFolder) == False:
-        print("target folder made")
-        #make new directory
-        os.mkdir(targetFolder)
-    #check if CWD is set correctly
-    if (cwd != targetFolder):
-        print("current working directory updated")
-        os.chdir(targetFolder)
-    #.new defines the sorting method, other methods include .hot, .top
-    for submission in reddit.subreddit(targetSubreddit).hot(limit=postLimit):
-        post = {}
-        post['post'] = []
-        post['comments'] = []
-        
+target_subreddit = 'depression'#the subreddit to be queried
+post_limit = 2000 #limit the posts to be obtained, every 100 added results in a 2 second request delay
+
+
+def get_data():
+    titles = [] #list of all the text in post titles
+    bodys = [] #list of all the body text
+    comments = [] #list of all of the comment text
+
+    """
+    this iterates though the API call, .hot indicates what sorting method the call should use.  
+    You have the options to sort by .new, .top, .controversial
+    """
+    for submission in reddit.subreddit(target_subreddit).hot(limit=post_limit): 
         try:
-            #naming file as postid
-            filename = str(submission.id) + ".json"
-            if appendPostID == True:
-                post['post'].append({'postID': str(submission.id)})
-            if appendFlair == True:
-                post['post'].append({'flair': str(submission.link_flair_text)})
-            if appendNumUpvotes == True:
-                post['post'].append({'upvotes': str(submission.score)})
-            if appendUpvoteRatio == True:
-                post['post'].append({'upvoteRatio': str(submission.upvote_ratio)})
-            if appendAuthor == True:
-                post['post'].append({'author': str(submission.author)})
-            if appendTitle == True:
-                post['post'].append({'title': str(submission.title)})
-            if appendPostBody == True:
-                post['post'].append({'bodytext': str(submission.selftext)})
-            if appendDateTime == True:
-                post['post'].append({'dateTimePosted': str(submission.created)})
-            if appendURL == True:
-                post['post'].append({'url': str(submission.url)})
-                #adding comments  to dictionary
-            if appendComments == True:
-                commentCount = 1
-                for comment in submission.comments.list():
-                    
-                    index = "comment" + str(commentCount)
-                    
-                        #filter out bots
-                    if ("bot" in comment.body) == False:
+            titles.append(str(submission.title)) #add title of current post
+            bodys.append(str(submission.selftext))#add body of current post
+
+            for comment in submission.comments.list():#iterate though comments from request
+                    if not ("bot" in comment.body):#filter out bots
                             #write comment to file
-                        post['comments'].append({index: comment.body})
-                        commentCount = commentCount + 1
-            
-            #writing JSON
-            with open(filename, "w+") as outfile:
-                json.dump(post, outfile)
-                print(filename + " created")
-            
-     #catch encoding errors for emojis, no commetns
-        except Exception as e:
+                        comments.append(comment.body)
+
+        except AttributeError: #catch if there is no more comments
             continue
-    return targetFolder
+    print("request completed")#let user know request is done
 
-def getSentiment(targetFolder):
-    polarityArray = []
-    subjectivityArray = []
-    #iterate through files in target folder
-    for filename in glob.glob(os.path.join(targetFolder, '*.json')):
-        #while current file is open
-        with open(filename, encoding='utf-8', mode='r') as currentFile:
-            #replace new line charecters with blank
-            data=currentFile.read().replace('\n', '')
-            #get the polarity and subjectivity of the title
-            polarityArray.append(TextBlob(json.loads(data)["post"][5]['title']).sentiment.polarity)
-            subjectivityArray.append(TextBlob(json.loads(data)["post"][5]['title']).sentiment.subjectivity)
-            
-            #get the polarity and subjectivity of the body
-            polarityArray.append(TextBlob(json.loads(data)["post"][6]['bodytext']).sentiment.polarity)
-            subjectivityArray.append(TextBlob(json.loads(data)["post"][6]['bodytext']).sentiment.subjectivity)
+    return titles,bodys,comments #return data lists
 
-            #keep track of commment index
-            commentIndex = 0
-            #while there is still comments left, 
-            while(commentIndex < len(json.loads(data)["comments"])):
-                
-                currentComment = json.loads(data)["comments"][commentIndex]["comment" + str(commentIndex +1)]
-                #add the polarity of the comment to the polarity array
-                polarityArray.append(TextBlob(currentComment).sentiment.polarity)
-                #add the polarity of the comment to the subjectivity array
-                subjectivityArray.append(TextBlob(currentComment).sentiment.subjectivity)
-                commentIndex = commentIndex + 1
-    print("mean polarity of subreddit: " + str(mean(polarityArray)))
-    print("mean subjectivity of subreddit: " + str(mean(subjectivityArray)))
-            
+             
+
+def clean_data(data):
+    unwanted_chars = [",", "’", "!", "/n" "'", "."] #charecters to be removed
+    titles, bodys, comments = [], [], [] #updated lists with removed comments
+
+    for title in data[0]:
+        for char in unwanted_chars: #loop through titles, remove unwanted charecters
+            title.replace(char, " ")
+        titles.append(title)
+
+    for body in data[1]:
+        for char in unwanted_chars: #loop through bodys, remove unwanted charecters
+            body.replace(char, " ")
+        bodys.append(body)
+
+    for comment in data[2]:#loop through comments, remove unwanted charecters
+        for char in unwanted_chars:
+            comment.replace(char, " ")
+        comments.append(comment)
+
+    print("unwanted charecters removed")#let user know request is done
+
+    return titles,bodys,comments #return new clean lists
+
+
+#this function gets overall sentiement for the data
+def get_sentiment(data):
+    polarity = [] #an array of numbers in range (-1,1), where -1 is very negative, 0 is neutral, 1 is postitve
+    subjectivity = [] #an array of numbers in range (-1,1), where -1 is very subjective, 0 is neutral, 1 is not subjective
+
+    for title in data[0]:
+        polarity.append(TextBlob(title).sentiment.polarity) #append polarity using textblob
+        subjectivity.append(TextBlob(title).sentiment.subjectivity) #append subjectivity using textblob
+
+    for body in data[1]:
+        polarity.append(TextBlob(body).sentiment.polarity)#append polarity using textblob
+        subjectivity.append(TextBlob(body).sentiment.subjectivity)#append subjectivity using textblob
+    
+    for comment in data[2]:
+        polarity.append(TextBlob(comment).sentiment.polarity)#append polarity using textblob
+        subjectivity.append(TextBlob(comment).sentiment.subjectivity)#append subjectivity using textblob
+
+    print("sentiment found")
+
+    return polarity, subjectivity #return both arrays
+
+
+#this function determines the result of the TextBlob NLP, and outputs to the user in a friendly format
+def get_result(sentiment):
+    negative_count = 0 #number of negative posts
+    positive_count = 0 #number of positive posts
+
+    for polarity in sentiment[0]:
+        if(polarity > 0):
+            positive_count += 1 #increment positive count
+        else:
+            negative_count += 1 #increment negative count
+    
+    if(negative_count > positive_count):
+        print("Overall, " + target_subreddit + " is on average negative.  "  +
+         "This query produced " + str(negative_count) + " negative posts, and " + str(positive_count) + " positive posts.") #print result
+    else:
+        print("Overall, the subreddit " + target_subreddit + " is on average positive.  "  +
+         "This query produced " + str(positive_count) + " negative posts, and " + str(negative_count) + " negative posts.") #print result
+
+
 if __name__ == '__main__':
-    getSentiment(post_to_json())
+    data = get_data() #get initial data from subreddit
+    cleaned_data = clean_data(data) # call get_data function, which also calls the clean_data function
+    sentiment = get_sentiment(cleaned_data) #create a list of predicted sentiment for each comment/post/title
+    get_result(sentiment) #determine the average sentiment of the entire query, and display in a friendly format
+    
