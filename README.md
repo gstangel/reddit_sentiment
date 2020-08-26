@@ -14,9 +14,15 @@ Once registered with reddit for a bot, insert your credentials into the *credent
 
 Relevant variables to manipulate include the targetSubreddit variable.  You can type any subreddit into this field just as it appears on reddit.  This will be the subreddit that will be scraped
 
-The postLimit variable limits how many posts are scraped from the subreddit.  Value can be from 1-200
+The postLimit variable limits how many posts are scraped from the subreddit.  Be weary of pulling too much information at once, for every additional 100 posts, a 2 second delay is added.
 
-Here is a flowchart of how the script is setup
+The result will be displayed in the console when the script has finihsed running.
+
+Here is a sample of what it will look like
+
+*Overall, depression is on average negative.  This query produced 2916 negative posts, and 2542 positive posts.*
+
+
 
 
 
