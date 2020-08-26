@@ -16,7 +16,7 @@ Relevant variables to manipulate include the targetSubreddit variable.  You can 
 
 The postLimit variable limits how many posts are scraped from the subreddit.  Be weary of pulling too much information at once, for every additional 100 posts, a 2 second delay is added.
 
-The result will be displayed in the console when the script has finihsed running.
+The result will be displayed in the console when the script has finised running.
 
 Here is a sample of what it will look like
 
